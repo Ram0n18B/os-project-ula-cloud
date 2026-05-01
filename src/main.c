@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
+#include <sys/wait.h>
 #include "orchestrator.h"
 
 /* --- Variables Globales --- */
@@ -67,7 +68,19 @@ void handle_shutdown(int sig) {
     printf("\n[ULA-Cloud] Iniciando secuencia de apagado...\n");
     
     // TODO: Notificar y limpiar recursos de procesos hijos.
+    pthread_mutex_lock(&dashboard_mutex);
+    for (int i = 0; i < num_services; i++) {
+        if (dashboard[i].pid > 0) {
+            kill(dashboard[i].pid, SIGTERM);  // Graceful shutdown
+        }
+    }
+    pthread_mutex_unlock(&dashboard_mutex);
     
+    sleep(2);
+    
+     while (waitpid(-1, NULL, WNOHANG) > 0);
+    
+    pthread_mutex_destroy(&dashboard_mutex);
     exit(0);
 }
 
