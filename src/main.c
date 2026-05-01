@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdint.h>
 #include "orchestrator.h"
 
 /* --- Variables Globales --- */
@@ -33,6 +34,29 @@ void print_dashboard() {
     // TODO: Renderizar cada fila del dashboard con la información actualizada.
 
     printf("==============================================================\n");
+    for(int i = 0; i < num_services; ++i)
+    {
+        char state_name[8];
+        switch (dashboard[i].state)
+        {
+        case STATE_IDLE:
+        strcpy(state_name, "Idle");
+        break;
+        case STATE_RUNNING:
+        strcpy(state_name, "Running");
+            break;
+            case STATE_CRASHED:
+            strcpy(state_name, "Crashed");
+            break;
+            case STATE_KILLED:
+            strcpy(state_name, "Killed");
+            break;
+            case STATE_STOPPED:
+            strcpy(state_name, "Stopped");
+            break;
+        }
+        printf("%-15s %-10jd %-15s %-10i\n", dashboard[i].name, (intmax_t) dashboard[i].pid, state_name, dashboard[i].exit_status);
+    }
 }
 
 /**
