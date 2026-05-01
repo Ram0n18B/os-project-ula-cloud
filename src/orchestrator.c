@@ -33,7 +33,7 @@ int spawn_service(int index) {
          exit(EXIT_FAILURE);
     case 0:
         apply_resource_limits(dashboard[index].mem_limit);
-        int exit_val = execlp(dashboard[index].path, dashboard[index].name, NULL);
+        int exit_val = execvp(dashboard[index].path, NULL);
         perror("Could not execute service\n");
         _exit(exit_val);
     default:
@@ -43,5 +43,5 @@ int spawn_service(int index) {
         pthread_mutex_unlock(&dashboard_mutex);
     }
         
-    return pid;
+    return dashboard[index].pid;
 }
