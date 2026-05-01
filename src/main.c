@@ -16,7 +16,7 @@ pthread_mutex_t dashboard_mutex;
 /**
  * Función de utilidad para limpiar la terminal.
  */
-void clear_screen() {
+inline void clear_screen() {
     printf("\033[H\033[J");
 }
 
@@ -35,6 +35,7 @@ void print_dashboard() {
     // TODO: Renderizar cada fila del dashboard con la información actualizada.
 
     printf("==============================================================\n");
+    pthread_mutex_lock(&dashboard_mutex);
     for(int i = 0; i < num_services; ++i)
     {
         char state_name[8];
@@ -58,6 +59,7 @@ void print_dashboard() {
         }
         printf("%-15s %-10jd %-15s %-10i\n", dashboard[i].name, (intmax_t) dashboard[i].pid, state_name, dashboard[i].exit_status);
     }
+    pthread_mutex_unlock(&dashboard_mutex);
 }
 
 /**
@@ -71,7 +73,7 @@ void handle_shutdown(int sig) {
     pthread_mutex_lock(&dashboard_mutex);
     for (int i = 0; i < num_services; i++) {
         if (dashboard[i].pid > 0) {
-            kill(dashboard[i].pid, SIGTERM);  // Graceful shutdown
+            kill(dashboard[i].pid, sig);
         }
     }
     pthread_mutex_unlock(&dashboard_mutex);
@@ -117,19 +119,19 @@ int main(int argc, char *argv[]) {
          * monitoreo concurrente. 
          */
         spawn_service(i);
-        monitor_service((void *) &dashboard[i]);
     }
-
+    
     // 5. Ciclo de monitoreo principal
     while (1) {
-        for (int i = 0; i < num_services; ++i)
-        {
-            monitor_service((void *) &dashboard[i]);
-        }
+        sleep(1);
         print_dashboard();
-        sleep(1); 
     }
-
+    pthread_mutex_lock(&dashboard_mutex);
+    for (int i = 0; i < num_services; i++)
+    {
+        pthread_join(dashboard[i].monitor_thread, NULL);
+    }
+    pthread_mutex_unlock(&dashboard_mutex);
     pthread_mutex_destroy(&dashboard_mutex);
     return 0;
 }
