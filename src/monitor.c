@@ -19,7 +19,7 @@ void* monitor_service(void *arg) {
     // TODO: Implementar la espera del proceso específico.
     // Ayuda: Revisar el uso de waitpid(pid, &status, 0).
     int status = 0;
-    pid_t pid = waitpid(service->pid, &status, 0);
+    waitpid(service->pid, &status, 0);
 
     /* * Una vez que waitpid retorna, el proceso hijo ha cambiado de estado.
      * TODO: Analizar el 'status' usando las macros de sys/wait.h:
@@ -49,9 +49,9 @@ void* monitor_service(void *arg) {
         switch(exit_code)
         {
             case SIGSEGV:
-                svst = STATE_KILLED;
-                case SIGKILL:
+                svst = STATE_CRASHED;
                 break;
+            case SIGKILL:
                 svst = STATE_KILLED;
                 break;
         }
