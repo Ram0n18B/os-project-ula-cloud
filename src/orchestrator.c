@@ -26,5 +26,20 @@ int spawn_service(int index) {
     // - Lógica del proceso HIJO (Setup de límites y Ejecución).
     // - Lógica del proceso PADRE (Gestión del dashboard).
 
-    return 0; // Cambiar por el PID real
+    pid = fork();
+    switch (pid) {
+    case -1:
+        perror("Could not create process");
+         exit(EXIT_FAILURE);
+    case 0:
+        apply_resource_limits(dashboard[index].mem_limit);
+        execlp(dashboard[index].path, dashboard[index].name, NULL);
+    default:
+        pthread_mutex_lock(&dashboard_mutex);
+        dashboard[index].pid = pid;
+        dashboard[index].state = STATE_RUNNING;
+        pthread_mutex_unlock(&dashboard_mutex);
+    }
+        
+    return pid;
 }
