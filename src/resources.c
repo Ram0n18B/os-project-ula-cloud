@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 #include "orchestrator.h"
 
 /**
@@ -13,7 +14,15 @@
  */
 void apply_resource_limits(size_t mem_limit) {
     // TODO: Configurar la estructura rlimit y ejecutar la syscall.
-    
+
+    struct rlimit limits;
+    limits.rlim_cur = mem_limit;
+    limits.rlim_max = (DEFAULT_MEM_LIMIT > mem_limit) ? DEFAULT_MEM_LIMIT : mem_limit;
+    int result = setrlimit(RLIMIT_AS, &limits);
+    if(result != 0){
+        perror("No fué posible establecer un límite de memoria para el proceso\n");
+        exit(EXIT_FAILURE);
+    }
     // Casos a considerar:
     // - ¿Qué diferencia hay entre rlim_cur y rlim_max?
     // - ¿Qué sucede si el límite solicitado es menor al tamaño del propio binario?
