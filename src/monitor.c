@@ -16,10 +16,15 @@
 void* monitor_service(void *arg) {
     // TODO: Castear el argumento al tipo de dato correcto.
     service_t *service = (service_t *) arg;
+
     // TODO: Implementar la espera del proceso específico.
     // Ayuda: Revisar el uso de waitpid(pid, &status, 0).
+    pthread_mutex_lock(&dashboard_mutex);
+    pid_t pid = service->pid;
+    pthread_mutex_unlock(&dashboard_mutex);
     int status = 0;
-    waitpid(service->pid, &status, 0);
+    waitpid(pid, &status, 0);
+
 
     /* * Una vez que waitpid retorna, el proceso hijo ha cambiado de estado.
      * TODO: Analizar el 'status' usando las macros de sys/wait.h:
@@ -28,7 +33,7 @@ void* monitor_service(void *arg) {
      * - WIFSIGNALED: ¿Fue terminado por una señal (Segfault, OOM Killer)?
      * - WTERMSIG: ¿Qué señal lo mató?
      */
-    service_state_t svst;
+    service_state_t svst = STATE_RUNNING;
     int exit_code = 0;
      if(WIFEXITED(status))
     {
@@ -40,6 +45,7 @@ void* monitor_service(void *arg) {
                 break;
             case EXIT_FAILURE:
                 svst = STATE_CRASHED;
+                kill(service->pid, SIGKILL);
                 break;
         }
     }
@@ -49,9 +55,8 @@ void* monitor_service(void *arg) {
         switch(exit_code)
         {
             case SIGSEGV:
-                svst = STATE_CRASHED;
-                break;
             case SIGKILL:
+            case SIGFPE:
                 svst = STATE_KILLED;
                 break;
         }
@@ -64,7 +69,7 @@ void* monitor_service(void *arg) {
      */
     pthread_mutex_lock(&dashboard_mutex);
     service->state = svst;
-    service->exit_status = (exit_code != 0) ? exit_code : WEXITSTATUS(status);
+    service->exit_status = exit_code;
     pthread_mutex_unlock(&dashboard_mutex);
     return NULL;
 }
