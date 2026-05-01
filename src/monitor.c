@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <pthread.h>
+#include <signal.h>
 #include "orchestrator.h"
 
 /**
@@ -14,9 +15,11 @@
  */
 void* monitor_service(void *arg) {
     // TODO: Castear el argumento al tipo de dato correcto.
-    
+    service_t *service = (service_t *) arg;
     // TODO: Implementar la espera del proceso específico.
     // Ayuda: Revisar el uso de waitpid(pid, &status, 0).
+    int status = 0;
+    pid_t pid = waitpid(service->pid, &status, 0);
 
     /* * Una vez que waitpid retorna, el proceso hijo ha cambiado de estado.
      * TODO: Analizar el 'status' usando las macros de sys/wait.h:
@@ -25,12 +28,43 @@ void* monitor_service(void *arg) {
      * - WIFSIGNALED: ¿Fue terminado por una señal (Segfault, OOM Killer)?
      * - WTERMSIG: ¿Qué señal lo mató?
      */
+    service_state_t svst;
+    int exit_code = 0;
+     if(WIFEXITED(status))
+    {
+        exit_code = WEXITSTATUS(status);
+        switch (exit_code)
+        {
+            case EXIT_SUCCESS:
+                svst = STATE_STOPPED;
+                break;
+            case EXIT_FAILURE:
+                svst = STATE_CRASHED;
+                break;
+        }
+    }
+    if(WIFSIGNALED(status))
+    {
+        exit_code = WTERMSIG(status);
+        switch(exit_code)
+        {
+            case SIGSEGV:
+                svst = STATE_KILLED;
+                case SIGKILL:
+                break;
+                svst = STATE_KILLED;
+                break;
+        }
+    }
 
     /*
      * TODO: Actualizar el dashboard global.
      * ¡CRÍTICO!: El acceso al array 'dashboard' debe estar protegido. 
      * No olvides liberar el mecanismo de sincronización al terminar.
      */
-
+    pthread_mutex_lock(&dashboard_mutex);
+    service->state = svst;
+    service->exit_status = (exit_code != 0) ? exit_code : WEXITSTATUS(status);
+    pthread_mutex_unlock(&dashboard_mutex);
     return NULL;
 }
