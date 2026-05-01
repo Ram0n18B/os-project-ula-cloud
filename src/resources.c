@@ -16,8 +16,8 @@ void apply_resource_limits(size_t mem_limit) {
     // TODO: Configurar la estructura rlimit y ejecutar la syscall.
 
     struct rlimit limits;
-    limits.rlim_cur = mem_limit;
-    limits.rlim_max = (DEFAULT_MEM_LIMIT > mem_limit) ? DEFAULT_MEM_LIMIT : mem_limit;
+    limits.rlim_cur = (DEFAULT_MEM_LIMIT > mem_limit) ? mem_limit : DEFAULT_MEM_LIMIT;
+    limits.rlim_max = DEFAULT_MEM_LIMIT;
     int result = setrlimit(RLIMIT_AS, &limits);
     if(result != 0){
         perror("No fué posible establecer un límite de memoria para el proceso\n");
