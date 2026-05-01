@@ -103,10 +103,16 @@ int main(int argc, char *argv[]) {
         /* * TODO: Orquestar el despliegue de servicios y su posterior 
          * monitoreo concurrente. 
          */
+        spawn_service(i);
+        monitor_service((void *) &dashboard[i]);
     }
 
     // 5. Ciclo de monitoreo principal
     while (1) {
+        for (int i = 0; i < num_services; ++i)
+        {
+            monitor_service((void *) &dashboard[i]);
+        }
         print_dashboard();
         sleep(1); 
     }
